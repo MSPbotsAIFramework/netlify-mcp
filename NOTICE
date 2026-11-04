@@ -1,0 +1,8 @@
+Netlify MCP Server
+Copyright 2026 MSPbots.ai
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+"Netlify" is a trademark of its respective owner. This project is an
+independent integration that calls the documented Netlify API; it contains no
+Netlify source code and is not affiliated with or endorsed by Netlify.
