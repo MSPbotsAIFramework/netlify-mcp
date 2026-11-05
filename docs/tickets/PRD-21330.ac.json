@@ -1,0 +1,195 @@
+[
+  {
+    "id": "TC1",
+    "ac": "AC1",
+    "text": "Given a valid X-Netlify-Token header, when netlify_test_connection is called, then it returns ok=true and a non-empty teams list, with the token value never appearing in the response",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_connection_returns_ok_and_teams_without_leaking_token"]
+  },
+  {
+    "id": "TC2",
+    "ac": "AC2",
+    "text": "Given a request with X-Netlify-Token omitted, when any tool is called, then it returns HTTP 401 naming that header, and the stub NetlifyClient's call count stays at 0",
+    "type": "auto",
+    "tests": ["tests/test_middleware.py::test_missing_token_header_returns_401_and_no_upstream_call"]
+  },
+  {
+    "id": "TC3",
+    "ac": "AC3",
+    "text": "Given an existing site, when netlify_get_site is called, then it returns that site's id, name, url and ssl_url",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_get_site_returns_core_fields"],
+    "notes": "needs a real vendor account (Netlify has no sandbox environment)"
+  },
+  {
+    "id": "TC4",
+    "ac": "AC3",
+    "text": "Given an unknown site_id against a stubbed 404 response, when netlify_get_site is called, then it returns a not_found error envelope, not an exception",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_get_site_unknown_id_returns_not_found"]
+  },
+  {
+    "id": "TC5",
+    "ac": "AC4",
+    "text": "Given netlify_delete_site(site_id=<valid>, confirm=false or omitted), when called, then it returns {deleted: false, reason: confirm_required} and no request reaches Netlify",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_delete_site_without_confirm_is_refused"]
+  },
+  {
+    "id": "TC6",
+    "ac": "AC4",
+    "text": "Given netlify_delete_site(site_id=<a disposable test site>, confirm=true), when called, then the call succeeds and a subsequent netlify_get_site on the same id returns not_found",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_delete_site_with_confirm_then_get_returns_not_found"],
+    "notes": "needs a real vendor account; use a disposable site created for this test, not a shared one"
+  },
+  {
+    "id": "TC7",
+    "ac": "AC5",
+    "text": "Given a site with deploy history, when netlify_list_deploys is called, then it returns deploys newest-first, each with a state field",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_list_deploys_returns_newest_first_with_state"],
+    "notes": "needs a real vendor account"
+  },
+  {
+    "id": "TC8",
+    "ac": "AC6",
+    "text": "Given netlify_restore_deploy(site_id, deploy_id, confirm=false), when called, then it returns {restored: false, reason: confirm_required} and no request reaches Netlify",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_restore_deploy_without_confirm_is_refused"]
+  },
+  {
+    "id": "TC9",
+    "ac": "AC6",
+    "text": "Given netlify_restore_deploy(site_id, deploy_id=<a prior deploy>, confirm=true), when called, then the call succeeds and netlify_get_deploy on that id subsequently shows it as the site's live deploy",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_restore_deploy_with_confirm_becomes_live"],
+    "notes": "needs a real vendor account; also confirm the live HTTP method (POST vs PUT) per docs disagreement noted in the design's Open questions"
+  },
+  {
+    "id": "TC10",
+    "ac": "AC7",
+    "text": "Given a stubbed upstream that returns HTTP 429 for a deploy-list call, when netlify_list_deploys is called, then it returns a rate_limited, retryable=true error envelope rather than hanging past the call budget",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_list_deploys_rate_limited_returns_retryable_error"]
+  },
+  {
+    "id": "TC11",
+    "ac": "AC8",
+    "text": "Given an environment variable flagged is_secret=true with a value set in a non-dev context, when netlify_list_site_env_vars is called, then that value comes back masked exactly as Netlify itself returns it",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_secret_env_var_value_is_masked_outside_dev_context"],
+    "notes": "needs a real vendor account; asserts this MCP performs no additional masking or unmasking of its own, only passes through Netlify's response"
+  },
+  {
+    "id": "TC12",
+    "ac": "AC9",
+    "text": "Given a valid account_id and key=FOO, when netlify_set_env_var_value(value=bar, context=production) is called, then only the production context's value changes; a subsequent netlify_get_env_var shows every other context unchanged",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_set_env_var_value_updates_only_target_context"],
+    "notes": "needs a real vendor account"
+  },
+  {
+    "id": "TC13",
+    "ac": "AC9",
+    "text": "Given netlify_delete_env_var(account_id, key, confirm=false), when called, then it returns {deleted: false, reason: confirm_required} and no request reaches Netlify",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_delete_env_var_without_confirm_is_refused"]
+  },
+  {
+    "id": "TC14",
+    "ac": "AC9",
+    "text": "Given netlify_create_env_var is called with site_id set, when a sibling site's env vars are listed via netlify_list_account_env_vars without site_id, then the newly created variable is not returned for the sibling site (it is scoped to the one site, not the whole team)",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_create_env_var_with_site_id_is_site_scoped"],
+    "notes": "needs a real vendor account with at least two sites under the same team"
+  },
+  {
+    "id": "TC15",
+    "ac": "AC10",
+    "text": "Given a site with at least one form submission, when netlify_list_form_submissions is called, then it returns the submission's field data and created_at, newest first",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_list_form_submissions_returns_fields_newest_first"],
+    "notes": "needs a real vendor account with an existing form submission"
+  },
+  {
+    "id": "TC16",
+    "ac": "AC11",
+    "text": "Given an existing submission, when netlify_mark_submission_spam is called followed by netlify_mark_submission_ham, then the submission's state toggles both ways, each confirmed by the tool's own response",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_mark_submission_spam_then_ham_toggles_state"],
+    "notes": "needs a real vendor account"
+  },
+  {
+    "id": "TC17",
+    "ac": "AC11",
+    "text": "Given netlify_delete_form(site_id, form_id, confirm=false), when called, then it returns {deleted: false, reason: confirm_required} and no request reaches Netlify",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_delete_form_without_confirm_is_refused"]
+  },
+  {
+    "id": "TC18",
+    "ac": "AC12",
+    "text": "Given an existing DNS zone, when netlify_list_dns_records / netlify_get_dns_record are called, then they return the zone's records with type, hostname and value",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_list_and_get_dns_records_return_record_fields"],
+    "notes": "needs a real vendor account with an existing DNS zone"
+  },
+  {
+    "id": "TC19",
+    "ac": "AC12",
+    "text": "Given an unknown zone_id against a stubbed 404 response, when netlify_get_dns_zone is called, then it returns a not_found error envelope",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_get_dns_zone_unknown_id_returns_not_found"]
+  },
+  {
+    "id": "TC20",
+    "ac": "AC12",
+    "text": "Given netlify_delete_dns_zone(zone_id, confirm=false), when called, then it returns {deleted: false, reason: confirm_required} and no request reaches Netlify",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_delete_dns_zone_without_confirm_is_refused"]
+  },
+  {
+    "id": "TC21",
+    "ac": "AC12",
+    "text": "Given netlify_create_dns_record(zone_id, type=TXT, hostname=_test, value=hello) followed by netlify_delete_dns_record(confirm=true) for the same record, when both are called in sequence, then the record exists after create and returns not_found after delete",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_create_then_delete_dns_record_round_trip"],
+    "notes": "needs a real vendor account with an existing DNS zone"
+  },
+  {
+    "id": "TC22",
+    "ac": "AC13",
+    "text": "Given two concurrent requests with different X-Netlify-Token values against stubbed upstream responses, when both call any tool at the same time, then the response to each carries only that request's own stub data, proven by a shared in-process counter showing no state object is reused across the two contexts",
+    "type": "auto",
+    "tests": ["tests/test_middleware.py::test_concurrent_tokens_do_not_leak_between_contexts"]
+  },
+  {
+    "id": "TC23",
+    "ac": "AC14",
+    "text": "Given a stubbed upstream returning {code: 422, message: 'name has already been taken'}, when any tool call hits it, then the tool returns {error: {code: invalid_argument, message: '...name has already been taken', retryable: false}}, not Netlify's raw body and not an exception",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_error_mapping_422_returns_invalid_argument_envelope"]
+  },
+  {
+    "id": "TC24",
+    "ac": "AC14",
+    "text": "Given a stubbed network timeout (no HTTP response at all), when any tool call hits it, then the tool returns an upstream_error, retryable=true envelope",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_error_mapping_timeout_returns_upstream_error_envelope"]
+  },
+  {
+    "id": "TC25",
+    "ac": "none",
+    "text": "Given the server is started, when tools/list is called, then it returns exactly 31 tools with names matching the Data & API contract table, none with a description over 500 characters or a first line over 100 characters",
+    "type": "auto",
+    "tests": ["tests/test_tools.py::test_tools_list_snapshot"]
+  },
+  {
+    "id": "TC26",
+    "ac": "none",
+    "text": "Given a Link response header with rel=\"next\" pointing at a URL with page=3, when the pagination parser runs, then it yields has_more=true, next_page=3; given no Link header, it yields has_more=false, next_page=null; given a malformed Link header, it yields has_more=false rather than raising",
+    "type": "auto",
+    "tests": ["tests/test_pagination.py::test_link_header_parsing_next_absent_and_malformed"]
+  }
+]
